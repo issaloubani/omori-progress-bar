@@ -1,32 +1,45 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-    <id>com.github.issaloubani.omori-red-hand</id>
+    <id>com.github.issaloubani.omori.progress.bar</id>
 
     <!-- Public plugin name should be written in Title Case.
      Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Omori-red-hand</name>
+    <name>Omori Progress Bar</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor email="issa.loubani.5@gmail.com">Issa Loubani</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        Replaces every progress bar in the IDE with an OMORI-flavoured one:
+        a black-and-white barber-pole track with a little red hand that rides
+        the leading edge - pacing back and forth while work is indeterminate,
+        and advancing with the fill when progress is known.<br><br>
+        Purely cosmetic. It touches indexing, Gradle sync, and any other
+        background task the same way, and works in all JetBrains IDEs.<br><br>
+        A fan project, not affiliated with or endorsed by OMOCAT. (You hear that, OMOCAT? From one cat person to another! Don't you dare take this down (* ￣︿￣))<br><br>
         ]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
+    <!-- Throwaway tester: summons a fake background task so the progress bar has
+         something to show, on demand, without waiting for indexing.
+         DISABLED for release so it does not ship in users' Tools menu.
+         Re-enable locally (uncomment) when you want to preview the bar. -->
 
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
-    <extensions defaultExtensionNs="com.intellij">
+    <actions>
+        <action id="Omori.SummonProgress"
+                class="actions.SummonProgressAction"
+                text="Omori: Summon Progress Bar"
+                description="Runs a fake background task to preview the Omori progress bar.">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 
-    </extensions>
 
     <!-- Application-level (whole IDE, not per-project) message bus subscriptions.
          Both point at the same class: one bootstraps the painter at startup,

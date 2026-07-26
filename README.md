@@ -1,152 +1,89 @@
-# Omori-red-hand
+# Omori Progress Bar
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+<p align="center">
+  <img src="assets/plugin-icon.svg" alt="Omori Progress Bar logo (light and dark)" width="220">
+</p>
 
-## Overview
+Replaces **every progress bar in the IDE** with an OMORI-flavoured one: a black-and-white barber-pole track with a
+little red hand that rides the leading edge — pacing back and forth while work is indeterminate, and advancing with the
+fill when progress is known.
 
-This repository implements an IntelliJ Platform plugin.
+![The bar](assets/red-hand-bar-preview.gif)
 
-## Demo Functionality
+> A fan project. Not affiliated with or endorsed by OMOCAT. (Again OMOCAT, don't dare to take this down (. ❛ ᴗ ❛.), dev
+> needs to have fun too (●'◡'●) )
 
-The sample plugin adds a `My Tool Window` tool window with a simple functionality of shuffling a random number.
+## What it does
 
-## Plugin structure
+- Recolours **all** progress bars — indexing, Gradle sync, VCS operations, any background task.
+- **Indeterminate:** the red hand paces left↔right, pointing in the direction it travels.
+- **Determinate:** the hand rides the growing fill from 0 % to 100 %.
+- Purely cosmetic. No settings, no background threads of its own, no per-project state.
+- Works in **all** JetBrains IDEs (`com.intellij.modules.platform`).
 
-A generated project contains the following content structure:
+## What it doesn't do
 
-```
-.
-├── .run/                   Predefined Run/Debug Configurations
-├── gradle
-│   ├── wrapper/            Gradle Wrapper
-│   ├── libs.versions.toml  Version catalog
-├── src                     Plugin sources
-│   └── main
-│       ├── kotlin/         Kotlin production sources
-│       └── resources/      Plugin resources
-│           ├── META-INF/   Plugin configuration file and logo
-│           └── messages/   Message bundles
-├── .gitignore              Git ignoring rules
-├── build.gradle.kts        Gradle build configuration
-├── gradle.properties       Gradle configuration properties
-├── gradlew                 *nix Gradle Wrapper script
-├── gradlew.bat             Windows Gradle Wrapper script
-├── README.md               This file
-└── settings.gradle.kts     Gradle project settings
-```
+- Won't help you finish your work faster. It just makes the wait a little more fun (●'◡'●)
+- Won't solve any bugs in your code. (if a bug exist in your code, it will still exist in your code (～￣▽￣)～ but it will
+  look cooler (. ❛ ᴗ ❛.) )
 
-In addition to the configuration files, the most crucial part is the `src` directory, which contains our implementation
-and the manifest for our plugin – [plugin.xml][file:plugin.xml].
+## How it works
 
-> [!NOTE]
-> To use Java in your plugin, create the `/src/main/java` directory.
+There is no extension point for styling progress bars, so the plugin swaps Swing's UI delegate directly:
 
-The plugin logo is placed in `src/main/resources/META-INF/pluginIcon.svg`. See [Plugin Logo][docs:logo] for more
-information and logo requirements.
+- `OmoriRedHandBar extends BasicProgressBarUI` overrides `paintIndeterminate` /
+  `paintDeterminate` — the only two "slots" the platform asks a delegate to fill.
+- An application listener (`OmoriProgressListener`) points the global
+  `UIManager` `"ProgressBarUI"` key at that class. It re-applies on window activation (bootstrap) and on look-and-feel
+  change (a theme switch rebuilds `UIManager` and would otherwise drop the registration).
+- Animation carries **no mutable state**: sprite position is derived from the platform's own frame counter, so it can't
+  drift with stray repaints.
 
-## Build script
+## Building
 
-The [build.gradle.kts][file:build.gradle.kts] is the core of the project definition. It applies three Gradle plugins:
-
-| Plugin                            | Description                                                                      |
-|-----------------------------------|----------------------------------------------------------------------------------|
-| `org.jetbrains.kotlin.jvm`        | Adds Kotlin support                                                              |
-| `org.jetbrains.changelog`         | Simplifies patching the [CHANGELOG.md][file:CHANGELOG.md] file                   |
-| `org.jetbrains.intellij.platform` | The [IntelliJ Platform Gradle Plugin][docs:intellij-platform-gradle-plugin-docs] |
-
-The `intellijPlatform` dependencies block selects the IDE to compile against:
-
-```kotlin
-intellijIdea("2025.3.5")
+```bash
+./gradlew buildPlugin      # produces the installable zip in build/distributions/
+./gradlew runIde           # launches a sandbox IDE with the plugin loaded
+./gradlew verifyPlugin     # checks API compatibility against the declared since-build
 ```
 
-See [Target Versions][docs:target-version] for more information.
+Compatibility: **since-build 233** (2023.3) with an open upper bound.
 
-The `intellijPlatform` dependencies block also contains a dependency on the platform testing framework:
+## Repository layout
 
-```kotlin
-testFramework(TestFrameworkType.Platform)
+```
+src/main/java/
+├── bars/OmoriRedHandBar.java          The ProgressBarUI delegate (all the painting)
+├── interfaces/IOmoriBar.java          Marker for future bar variants
+├── listener/OmoriProgressListener.java Registers the delegate with UIManager
+└── actions/SummonProgressAction.java  Dev-only tester (gated out of the shipped plugin)
+src/main/resources/
+├── icons/redHand.png, redHand@2x.png  The sprite (1x + HiDPI)
+└── META-INF/
+    ├── plugin.xml                      Plugin manifest
+    ├── pluginIcon.svg                  Logo (light theme)
+    └── pluginIcon_dark.svg             Logo (dark theme, inverted)
+assets/                                 README images
+art/                                    Source art masters (not shipped)
 ```
 
-See [Testing][docs:testing] for more information
+## Previewing the bar during development
 
-## Plugin configuration file
+The bar only appears when the IDE is actually busy, so there's a dev-only action to summon one on demand. It's commented
+out in `plugin.xml` for release — uncomment the `<actions>`
+block, run `./gradlew runIde`, then **Tools → Omori: Summon Progress Bar**. It runs a fake task through both modes
+(indeterminate, then determinate 0→100 %).
 
-The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in the `src/main/resources/META-INF`
-directory. It provides general information about the plugin, its dependencies, extensions, and listeners.
+## License
 
-You can read more about this file in the [Plugin Configuration File][docs:plugin.xml] section of our documentation.
+The code is released under its repository license. OMORI and its imagery are the property of OMOCAT; this plugin is an
+unofficial fan work.
 
-### Plugin ID and name
+## Creator
 
-Generated plugin ID and name may require adjustment.
+Made with ❤️ by none other than Issa Loubani (yup, that's me (❁´◡`❁), feel free to contribute, or not, your call not
+mine ㄟ (▔, ▔ )ㄏ)
 
-These values are generated based on _Group ID_ and _Artifact ID_ provided in the IDE Plugin wizard. It is recommended to
-review `<id>` and `<name>` elements in the plugin.xml file, and adjust them if needed.
+## Note
 
-Please note that Gradle properties `rootProject.name` and `project.group` don't need to match the `<id>` and `<name>`
-elements. There is no IntelliJ Platform-related reason they should as they serve different functions.
-
-## Predefined Run/Debug configurations
-
-Within the default project structure, there is a `.run` directory provided containing predefined *Run/Debug
-configurations* that expose corresponding Gradle tasks:
-
-| Configuration name  | Description                                                                                                                                                                           |
-|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Run IDE with Plugin | Runs [`:runIde`][docs:intellij-platform-gradle-plugin-runIde] IntelliJ Platform Gradle Plugin task. Use the *Debug* icon for plugin debugging.                                        |
-| Run Tests           | Runs [`:check`][gradle:lifecycle-tasks] Gradle task.                                                                                                                                  |
-| Run Verifications   | Runs [`:verifyPlugin`][docs:intellij-platform-gradle-plugin-verifyPlugin] IntelliJ Platform Gradle Plugin task to check the plugin compatibility against the specified IntelliJ IDEs. |
-
-> [!NOTE]
-> You can find the logs from the running task in the `idea.log` tab.
-
-## Publishing the plugin
-
-> [!TIP]
-> Make sure to follow all guidelines listed in [Publishing a Plugin][docs:publishing] to follow all recommended and
-required steps.
-
-Releasing a plugin to [JetBrains Marketplace](https://plugins.jetbrains.com) is a straightforward operation that uses
-the `publishPlugin` Gradle task provided by
-the [intellij-platform-gradle-plugin][docs:intellij-platform-gradle-plugin-docs].
-
-You can also upload the plugin to the [JetBrains Plugin Repository](https://plugins.jetbrains.com/plugin/upload)
-manually via UI.
-
-## Useful links
-
-- [IntelliJ Platform SDK Plugin SDK][docs]
-- [IntelliJ Platform Gradle Plugin Documentation][docs:intellij-platform-gradle-plugin-docs]
-- [IntelliJ Platform Explorer][jb:ipe]
-- [JetBrains Marketplace Quality Guidelines][jb:quality-guidelines]
-- [IntelliJ Platform UI Guidelines][jb:ui-guidelines]
-- [JetBrains Marketplace Paid Plugins][jb:paid-plugins]
-- [IntelliJ SDK Code Samples][gh:code-samples]
-
-[docs]: https://plugins.jetbrains.com/docs/intellij
-[docs:plugin.xml]: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html?from=IJPluginReadmeFile
-[docs:publishing]: https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-docs]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html?from=IJPluginReadmeFile
-[docs:intellij-platform-gradle-plugin-runIde]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#runIde
-[docs:intellij-platform-gradle-plugin-verifyPlugin]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html?from=IJPluginReadmeFile#verifyPlugin
-[docs:logo]: https://plugins.jetbrains.com/docs/intellij/plugin-icon-file.html?from=IJPluginReadmeFile
-[docs:target-version]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#target-versions
-[docs:testing]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html?from=IJPluginReadmeFile#testing
-
-[file:build.gradle.kts]: ./build.gradle.kts
-[file:CHANGELOG.md]: ./CHANGELOG.md
-[file:gradle.properties]: ./gradle.properties
-[file:plugin.xml]: ./src/main/resources/META-INF/plugin.xml
-
-[gh:code-samples]: https://github.com/JetBrains/intellij-sdk-code-samples
-
-[gradle:lifecycle-tasks]: https://docs.gradle.org/current/userguide/java_plugin.html#lifecycle_tasks
-
-[jb:github]: https://github.com/JetBrains/.github/blob/main/profile/README.md
-[jb:forum]: https://platform.jetbrains.com/
-[jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
-[jb:paid-plugins]: https://plugins.jetbrains.com/docs/marketplace/paid-plugins-marketplace.html
-[jb:ipe]: https://jb.gg/ipe
-[jb:ui-guidelines]: https://jetbrains.github.io/ui
+I am planning on more bars in future, IF anyone wants, for me, this is enough (at least for now 👀)
