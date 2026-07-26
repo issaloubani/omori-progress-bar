@@ -1,6 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 
-rootProject.name = "omori-red-hand"
+rootProject.name = "omori-progress-bar"
 
 pluginManagement {
     plugins {
